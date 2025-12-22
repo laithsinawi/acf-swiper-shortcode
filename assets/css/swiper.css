@@ -1,0 +1,35 @@
+/* Minimal structural styles; critical styles are mostly inlined */
+.acf-swiper {
+  position: relative;
+}
+
+.acf-swiper .swiper {
+  width: 100%;
+  position: relative;
+}
+
+.acf-swiper .swiper-slide {
+  position: relative;
+  overflow: hidden;
+}
+
+.acf-swiper .slide-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.acf-swiper .slide-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.acf-swiper .slide-inner {
+  position: relative;
+  z-index: 2;
+}
