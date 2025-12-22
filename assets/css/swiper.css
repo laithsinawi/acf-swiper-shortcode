@@ -1,16 +1,32 @@
 /* Minimal structural styles; critical styles are mostly inlined */
+/* Minimal structural styles; critical styles are mostly inlined */
 .acf-swiper {
   position: relative;
 }
 
 .acf-swiper .swiper {
   width: 100%;
+  height: 100%;
   position: relative;
+  overflow: hidden;
+}
+
+.acf-swiper .swiper-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  display: flex;
+  transition-property: transform;
+  box-sizing: content-box;
 }
 
 .acf-swiper .swiper-slide {
   position: relative;
   overflow: hidden;
+  flex-shrink: 0;
+  width: 100%;
+  height: auto;
 }
 
 .acf-swiper .slide-bg {
