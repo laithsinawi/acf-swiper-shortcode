@@ -347,7 +347,7 @@ function shortcode(array $atts = []): string
             data-autoplay="<?php echo esc_attr($atts['autoplay']); ?>"
             data-autoplay-delay="<?php echo esc_attr($atts['autoplay_delay']); ?>"
         >
-            <div class="swiper" style="min-height: <?php echo $style_min_height; ?>px;">
+            <div class="swiper" style="min-height: <?php echo $style_min_height; ?>px; height: auto;">
                 <div class="swiper-wrapper">
                     <?php foreach ($slides as $slide) :
                         $heading = $slide['heading'] ?? '';
@@ -489,7 +489,7 @@ function shortcode(array $atts = []): string
         data-autoplay="<?php echo esc_attr($atts['autoplay']); ?>"
         data-autoplay-delay="<?php echo esc_attr($atts['autoplay_delay']); ?>"
     >
-        <div class="swiper" style="min-height: <?php echo $style_min_height; ?>px;">
+        <div class="swiper" style="min-height: <?php echo $style_min_height; ?>px; height: auto;">
             <div class="swiper-wrapper">
                 <?php
                 while (have_rows($field, $post_id)) {

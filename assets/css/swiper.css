@@ -3,12 +3,13 @@
 .acf-swiper {
   position: relative;
   width: 100%;
+  min-height: 1px;
 }
 
 .acf-swiper .swiper {
   width: 100%;
   min-height: inherit;
-  height: 100%;
+  height: auto;
   position: relative;
   overflow: hidden;
 }
@@ -16,7 +17,8 @@
 .acf-swiper .swiper-wrapper {
   position: relative;
   width: 100%;
-  height: 100%;
+  height: auto;
+  min-height: inherit;
   z-index: 1;
   display: flex;
   transition-property: transform;
@@ -28,11 +30,14 @@
   overflow: hidden;
   flex-shrink: 0;
   width: 100%;
-  height: 100%;
+  height: auto;
+  min-height: inherit;
+  display: flex;
 }
 
 .acf-swiper .slide-inner {
   min-height: inherit;
+  flex: 1 1 auto;
 }
 
 .acf-swiper .slide-bg {
