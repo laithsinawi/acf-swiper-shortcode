@@ -338,7 +338,6 @@ function shortcode(array $atts = []): string
         ?>
         <div
             class="acf-swiper"
-            style="min-height: <?php echo $style_min_height; ?>px;"
             data-acf-swiper
             data-slides-per-view="<?php echo esc_attr($atts['slides_per_view']); ?>"
             data-space-between="<?php echo esc_attr($atts['space_between']); ?>"
@@ -347,7 +346,7 @@ function shortcode(array $atts = []): string
             data-autoplay="<?php echo esc_attr($atts['autoplay']); ?>"
             data-autoplay-delay="<?php echo esc_attr($atts['autoplay_delay']); ?>"
         >
-            <div class="swiper" style="min-height: <?php echo $style_min_height; ?>px; height: auto;">
+            <div class="swiper">
                 <div class="swiper-wrapper">
                     <?php foreach ($slides as $slide) :
                         $heading = $slide['heading'] ?? '';
@@ -413,6 +412,18 @@ function shortcode(array $atts = []): string
             </div>
         </div>
         <style>
+            .acf-swiper {
+                min-height: <?php echo $style_min_height; ?>px;
+            }
+            .acf-swiper .swiper {
+                min-height: inherit;
+                height: auto;
+            }
+            .acf-swiper .swiper-wrapper,
+            .acf-swiper .swiper-slide,
+            .acf-swiper .slide-inner {
+                min-height: inherit;
+            }
             .acf-swiper .slide-bg {
                 position: absolute;
                 inset: 0;
@@ -480,7 +491,6 @@ function shortcode(array $atts = []): string
     ?>
     <div
         class="acf-swiper"
-        style="min-height: <?php echo $style_min_height; ?>px;"
         data-acf-swiper
         data-slides-per-view="<?php echo esc_attr($atts['slides_per_view']); ?>"
         data-space-between="<?php echo esc_attr($atts['space_between']); ?>"
@@ -489,7 +499,7 @@ function shortcode(array $atts = []): string
         data-autoplay="<?php echo esc_attr($atts['autoplay']); ?>"
         data-autoplay-delay="<?php echo esc_attr($atts['autoplay_delay']); ?>"
     >
-        <div class="swiper" style="min-height: <?php echo $style_min_height; ?>px; height: auto;">
+        <div class="swiper">
             <div class="swiper-wrapper">
                 <?php
                 while (have_rows($field, $post_id)) {
@@ -559,6 +569,18 @@ function shortcode(array $atts = []): string
         </div>
     </div>
     <style>
+        .acf-swiper {
+            min-height: <?php echo $style_min_height; ?>px;
+        }
+        .acf-swiper .swiper {
+            min-height: inherit;
+            height: auto;
+        }
+        .acf-swiper .swiper-wrapper,
+        .acf-swiper .swiper-slide,
+        .acf-swiper .slide-inner {
+            min-height: inherit;
+        }
         .acf-swiper .slide-bg {
             position: absolute;
             inset: 0;
