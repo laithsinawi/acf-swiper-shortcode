@@ -120,6 +120,17 @@ function render_fallback(array $atts, array $settings, string $reason): string
     // Ensure base styles are available so the placeholder looks intentional.
     wp_enqueue_style('acfswiper');
 
+    $is_admin = current_user_can('manage_options');
+
+    $repeater = $settings['acf']['repeater'] ?? 'slide';
+    $fields = [
+        ['label' => 'Heading', 'key' => $settings['acf']['heading'] ?? 'slide_heading'],
+        ['label' => 'Text', 'key' => $settings['acf']['text'] ?? 'slide_text'],
+        ['label' => 'Button text', 'key' => $settings['acf']['button_text'] ?? 'button_text'],
+        ['label' => 'Button link', 'key' => $settings['acf']['button_link'] ?? 'button_link'],
+        ['label' => 'Background image', 'key' => $settings['acf']['image'] ?? 'slide_background_image'],
+    ];
+
     $style_min_height = (int) ($atts['min_height'] ?? $settings['slider']['min_height']);
     $style_text = esc_attr($atts['text_color'] ?? $settings['styles']['text_color']);
     $overlay = esc_attr($settings['styles']['overlay'] ?? 'rgba(0,0,0,0.35)');
@@ -136,6 +147,19 @@ function render_fallback(array $atts, array $settings, string $reason): string
             <div class="acf-swiper__fallback-badge">ACF Swiper</div>
             <h2 class="acf-swiper__fallback-title">Slides not ready yet</h2>
             <p class="acf-swiper__fallback-message"><?php echo esc_html($message); ?></p>
+            <?php if ($is_admin) : ?>
+                <div class="acf-swiper__fallback-admin">
+                    <strong>ACF setup</strong>
+                    <div>Repeater field: <span class="acf-swiper__code"><?php echo esc_html($repeater); ?></span></div>
+                    <div>Sub-fields:</div>
+                    <ul class="acf-swiper__fallback-list">
+                        <?php foreach ($fields as $field) : ?>
+                            <li><span class="acf-swiper__code"><?php echo esc_html($field['key']); ?></span> (<?php echo esc_html($field['label']); ?>)</li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <div>Shortcode: <span class="acf-swiper__code">[acf_swiper]</span></div>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
     <style>
@@ -192,6 +216,28 @@ function render_fallback(array $atts, array $settings, string $reason): string
             font-size: 16px;
             line-height: 1.6;
             opacity: 0.9;
+        }
+        .acf-swiper__fallback-admin {
+            margin-top: 10px;
+            padding: 12px 14px;
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 12px;
+            text-align: left;
+            background: rgba(255,255,255,0.04);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .acf-swiper__fallback-list {
+            margin: 6px 0 8px;
+            padding-left: 18px;
+        }
+        .acf-swiper__code {
+            display: inline-block;
+            padding: 2px 6px;
+            background: rgba(0,0,0,0.35);
+            border-radius: 6px;
+            font-family: ui-monospace, SFMono-Regular, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 12px;
         }
         <?php if (!empty($custom_css)) : echo $custom_css; endif; ?>
     </style>
