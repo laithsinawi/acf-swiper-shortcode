@@ -703,6 +703,9 @@ function sanitize_settings(array $input): array
 function render_settings_page(): void
 {
     $settings = get_settings();
+    if (function_exists('wp_enqueue_media')) {
+        wp_enqueue_media();
+    }
     ?>
     <div class="wrap">
         <h1>ACF Swiper Settings</h1>
@@ -772,7 +775,19 @@ function render_settings_page(): void
                                         <p><label>Text<br><textarea name="acfswiper_settings[builtin][slides][<?php echo (int) $i; ?>][text]" rows="3" class="large-text"><?php echo esc_textarea($text); ?></textarea></label></p>
                                         <p><label>Button text<br><input type="text" class="regular-text" name="acfswiper_settings[builtin][slides][<?php echo (int) $i; ?>][button_text]" value="<?php echo esc_attr($btn_text); ?>"></label></p>
                                         <p><label>Button link (URL)<br><input type="url" class="regular-text" name="acfswiper_settings[builtin][slides][<?php echo (int) $i; ?>][button_link]" value="<?php echo esc_attr($btn_link); ?>"></label></p>
-                                        <p><label>Image (ID or URL)<br><input type="text" class="regular-text" name="acfswiper_settings[builtin][slides][<?php echo (int) $i; ?>][image]" value="<?php echo esc_attr($image); ?>" placeholder="123 or https://example.com/image.jpg"></label></p>
+                                        <div class="acfswiper-image-field">
+                                            <label>Image</label>
+                                            <div class="acfswiper-image-row">
+                                                <input type="text" class="regular-text acfswiper-image-input" name="acfswiper_settings[builtin][slides][<?php echo (int) $i; ?>][image]" value="<?php echo esc_attr($image); ?>" placeholder="ID or URL">
+                                                <button type="button" class="button acfswiper-select-image">Select image</button>
+                                                <button type="button" class="button-link acfswiper-clear-image">Clear</button>
+                                            </div>
+                                            <div class="acfswiper-image-preview">
+                                                <?php if (!empty($image)) : ?>
+                                                    <img src="<?php echo esc_url(is_numeric($image) ? wp_get_attachment_image_url((int) $image, 'thumbnail') : $image); ?>" alt="" />
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
                                     </div>
                                     <?php
                                 endforeach;
@@ -870,7 +885,15 @@ function render_settings_page(): void
             <p><label>Text<br><textarea name="acfswiper_settings[builtin][slides][__i__][text]" rows="3" class="large-text"></textarea></label></p>
             <p><label>Button text<br><input type="text" class="regular-text" name="acfswiper_settings[builtin][slides][__i__][button_text]" value=""></label></p>
             <p><label>Button link (URL)<br><input type="url" class="regular-text" name="acfswiper_settings[builtin][slides][__i__][button_link]" value=""></label></p>
-            <p><label>Image (ID or URL)<br><input type="text" class="regular-text" name="acfswiper_settings[builtin][slides][__i__][image]" value="" placeholder="123 or https://example.com/image.jpg"></label></p>
+            <div class="acfswiper-image-field">
+                <label>Image</label>
+                <div class="acfswiper-image-row">
+                    <input type="text" class="regular-text acfswiper-image-input" name="acfswiper_settings[builtin][slides][__i__][image]" value="" placeholder="ID or URL">
+                    <button type="button" class="button acfswiper-select-image">Select image</button>
+                    <button type="button" class="button-link acfswiper-clear-image">Clear</button>
+                </div>
+                <div class="acfswiper-image-preview"></div>
+            </div>
         </div>
     </script>
     <style>
@@ -886,6 +909,28 @@ function render_settings_page(): void
             align-items: center;
             justify-content: space-between;
             margin-bottom: 6px;
+        }
+        .acfswiper-image-field {
+            margin: 10px 0;
+        }
+        .acfswiper-image-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .acfswiper-image-row input.regular-text {
+            min-width: 260px;
+        }
+        .acfswiper-image-preview {
+            margin-top: 6px;
+        }
+        .acfswiper-image-preview img {
+            max-width: 160px;
+            height: auto;
+            border-radius: 6px;
+            border: 1px solid #c3c4c7;
+            display: block;
         }
     </style>
     <script>
@@ -923,6 +968,39 @@ function render_settings_page(): void
                         if (card) {
                             card.remove();
                         }
+                        return;
+                    }
+                    if (target && target.classList.contains('acfswiper-select-image')) {
+                        if (!window.wp || !wp.media) {
+                            alert('Media library not available.');
+                            return;
+                        }
+                        const card = target.closest('.acfswiper-slide-card');
+                        const input = card?.querySelector('.acfswiper-image-input');
+                        const preview = card?.querySelector('.acfswiper-image-preview');
+                        const frame = wp.media({
+                            title: 'Select slide image',
+                            multiple: false,
+                            library: { type: 'image' },
+                        });
+                        frame.on('select', () => {
+                            const attachment = frame.state().get('selection').first().toJSON();
+                            if (input) {
+                                input.value = attachment.id || attachment.url || '';
+                            }
+                            if (preview) {
+                                preview.innerHTML = attachment.url ? '<img src="' + attachment.url + '" alt="">' : '';
+                            }
+                        });
+                        frame.open();
+                        return;
+                    }
+                    if (target && target.classList.contains('acfswiper-clear-image')) {
+                        const card = target.closest('.acfswiper-slide-card');
+                        const input = card?.querySelector('.acfswiper-image-input');
+                        const preview = card?.querySelector('.acfswiper-image-preview');
+                        if (input) input.value = '';
+                        if (preview) preview.innerHTML = '';
                     }
                 });
             }
