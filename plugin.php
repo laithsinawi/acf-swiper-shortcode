@@ -120,7 +120,8 @@ function render_fallback(array $atts, array $settings, string $reason): string
     // Ensure base styles are available so the placeholder looks intentional.
     wp_enqueue_style('acfswiper');
 
-    $is_admin = current_user_can('manage_options');
+    // Show guidance to editors/admins so they can configure fields quickly.
+    $is_admin = current_user_can('manage_options') || current_user_can('edit_posts');
 
     $repeater = $settings['acf']['repeater'] ?? 'slide';
     $fields = [
