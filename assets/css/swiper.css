@@ -2,10 +2,12 @@
 /* Minimal structural styles; critical styles are mostly inlined */
 .acf-swiper {
   position: relative;
+  width: 100%;
 }
 
 .acf-swiper .swiper {
   width: 100%;
+  min-height: inherit;
   height: 100%;
   position: relative;
   overflow: hidden;
@@ -26,7 +28,11 @@
   overflow: hidden;
   flex-shrink: 0;
   width: 100%;
-  height: auto;
+  height: 100%;
+}
+
+.acf-swiper .slide-inner {
+  min-height: inherit;
 }
 
 .acf-swiper .slide-bg {

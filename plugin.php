@@ -338,6 +338,7 @@ function shortcode(array $atts = []): string
         ?>
         <div
             class="acf-swiper"
+            style="min-height: <?php echo $style_min_height; ?>px;"
             data-acf-swiper
             data-slides-per-view="<?php echo esc_attr($atts['slides_per_view']); ?>"
             data-space-between="<?php echo esc_attr($atts['space_between']); ?>"
@@ -479,6 +480,7 @@ function shortcode(array $atts = []): string
     ?>
     <div
         class="acf-swiper"
+        style="min-height: <?php echo $style_min_height; ?>px;"
         data-acf-swiper
         data-slides-per-view="<?php echo esc_attr($atts['slides_per_view']); ?>"
         data-space-between="<?php echo esc_attr($atts['space_between']); ?>"
