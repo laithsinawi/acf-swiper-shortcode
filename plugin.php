@@ -52,6 +52,7 @@ function defaults(): array
             'dot_active' => '#ffffff',
             'dot_inactive' => 'rgba(255,255,255,0.45)',
             'overlay' => 'rgba(0,0,0,0.45)',
+            'custom_css' => '',
         ],
     ];
 }
@@ -107,6 +108,98 @@ function register_assets(): void
 add_action('wp_enqueue_scripts', __NAMESPACE__ . '\\register_assets');
 
 /**
+ * Render a fallback block when requirements are missing.
+ *
+ * @param array  $atts
+ * @param array  $settings
+ * @param string $reason
+ * @return string
+ */
+function render_fallback(array $atts, array $settings, string $reason): string
+{
+    // Ensure base styles are available so the placeholder looks intentional.
+    wp_enqueue_style('acfswiper');
+
+    $style_min_height = (int) ($atts['min_height'] ?? $settings['slider']['min_height']);
+    $style_text = esc_attr($atts['text_color'] ?? $settings['styles']['text_color']);
+    $overlay = esc_attr($settings['styles']['overlay'] ?? 'rgba(0,0,0,0.35)');
+    $custom_css = $settings['styles']['custom_css'] ?? '';
+
+    $message = $reason === 'missing_acf'
+        ? 'ACF Pro needs to be active for this slider. Activate ACF Pro to replace this placeholder with your slides.'
+        : 'Add at least one slide to the "' . esc_html($atts['field']) . '" repeater to replace this placeholder.';
+
+    ob_start();
+    ?>
+    <div class="acf-swiper acf-swiper--fallback" style="min-height: <?php echo $style_min_height; ?>px;">
+        <div class="acf-swiper__fallback-inner">
+            <div class="acf-swiper__fallback-badge">ACF Swiper</div>
+            <h2 class="acf-swiper__fallback-title">Slides not ready yet</h2>
+            <p class="acf-swiper__fallback-message"><?php echo esc_html($message); ?></p>
+        </div>
+    </div>
+    <style>
+        .acf-swiper--fallback {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 32px;
+            color: <?php echo $style_text; ?>;
+            background:
+                radial-gradient(circle at 20% 20%, rgba(255,255,255,0.08), transparent 35%),
+                radial-gradient(circle at 80% 30%, rgba(255,255,255,0.04), transparent 30%),
+                #0f172a;
+            overflow: hidden;
+        }
+        .acf-swiper--fallback::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: <?php echo $overlay; ?>;
+            opacity: 0.35;
+            z-index: 0;
+        }
+        .acf-swiper__fallback-inner {
+            position: relative;
+            z-index: 1;
+            max-width: 720px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .acf-swiper__fallback-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            align-self: center;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 12px;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+        .acf-swiper__fallback-title {
+            margin: 0;
+            font-size: 28px;
+            line-height: 1.2;
+        }
+        .acf-swiper__fallback-message {
+            margin: 0;
+            font-size: 16px;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+        <?php if (!empty($custom_css)) : echo $custom_css; endif; ?>
+    </style>
+    <?php
+    return ob_get_clean();
+}
+
+/**
  * Shortcode handler.
  *
  * @param array $atts
@@ -114,10 +207,6 @@ add_action('wp_enqueue_scripts', __NAMESPACE__ . '\\register_assets');
  */
 function shortcode(array $atts = []): string
 {
-    if (!function_exists('have_rows')) {
-        return '<!-- ACF not available -->';
-    }
-
     $settings = get_settings();
 
     $atts = shortcode_atts(
@@ -151,9 +240,14 @@ function shortcode(array $atts = []): string
 
     $post_id = is_numeric($atts['post_id']) ? (int) $atts['post_id'] : get_the_ID();
     $field = sanitize_key($atts['field']);
+    $atts['field'] = $field;
+
+    if (!function_exists('have_rows')) {
+        return render_fallback($atts, $settings, 'missing_acf');
+    }
 
     if (!have_rows($field, $post_id)) {
-        return '<!-- No slides -->';
+        return render_fallback($atts, $settings, 'no_slides');
     }
 
     // Enqueue assets.
