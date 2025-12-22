@@ -22,6 +22,7 @@ const VERSION = '0.0.4';
 function defaults(): array
 {
     return [
+        'data_source' => 'acf',
         'acf' => [
             'repeater' => 'slide',
             'heading' => 'slide_heading',
@@ -29,6 +30,9 @@ function defaults(): array
             'button_text' => 'button_text',
             'button_link' => 'button_link',
             'image' => 'slide_background_image',
+        ],
+        'builtin' => [
+            'slides' => [],
         ],
         'slider' => [
             'min_height' => 500,
@@ -113,9 +117,10 @@ add_action('wp_enqueue_scripts', __NAMESPACE__ . '\\register_assets');
  * @param array  $atts
  * @param array  $settings
  * @param string $reason
+ * @param array  $context Additional context (e.g., source).
  * @return string
  */
-function render_fallback(array $atts, array $settings, string $reason): string
+function render_fallback(array $atts, array $settings, string $reason, array $context = []): string
 {
     // Ensure base styles are available so the placeholder looks intentional.
     wp_enqueue_style('acfswiper');
@@ -123,6 +128,7 @@ function render_fallback(array $atts, array $settings, string $reason): string
     // Show guidance to editors/admins so they can configure fields quickly.
     $is_admin = current_user_can('manage_options') || current_user_can('edit_posts');
 
+    $source = $context['source'] ?? ($settings['data_source'] ?? 'acf');
     $repeater = $settings['acf']['repeater'] ?? 'slide';
     $fields = [
         ['label' => 'Heading', 'key' => $settings['acf']['heading'] ?? 'slide_heading'],
@@ -137,9 +143,13 @@ function render_fallback(array $atts, array $settings, string $reason): string
     $overlay = esc_attr($settings['styles']['overlay'] ?? 'rgba(0,0,0,0.35)');
     $custom_css = $settings['styles']['custom_css'] ?? '';
 
-    $message = $reason === 'missing_acf'
-        ? 'ACF Pro needs to be active for this slider. Activate ACF Pro to replace this placeholder with your slides.'
-        : 'Add at least one slide to the "' . esc_html($atts['field']) . '" repeater to replace this placeholder.';
+    if ($reason === 'missing_acf') {
+        $message = 'ACF Pro needs to be active for this slider. Activate ACF Pro to replace this placeholder with your slides.';
+    } elseif ($source === 'builtin' || $reason === 'no_slides_builtin') {
+        $message = 'Add at least one slide in ACF Swiper settings under "Built-in Slides" to replace this placeholder.';
+    } else {
+        $message = 'Add at least one slide to the "' . esc_html($atts['field']) . '" repeater to replace this placeholder.';
+    }
 
     ob_start();
     ?>
@@ -148,7 +158,7 @@ function render_fallback(array $atts, array $settings, string $reason): string
             <div class="acf-swiper__fallback-badge">ACF Swiper</div>
             <h2 class="acf-swiper__fallback-title">Slides not ready yet</h2>
             <p class="acf-swiper__fallback-message"><?php echo esc_html($message); ?></p>
-            <?php if ($is_admin) : ?>
+            <?php if ($is_admin && $source === 'acf') : ?>
                 <div class="acf-swiper__fallback-admin">
                     <strong>ACF setup</strong>
                     <div>Repeater field: <span class="acf-swiper__code"><?php echo esc_html($repeater); ?></span></div>
@@ -158,6 +168,12 @@ function render_fallback(array $atts, array $settings, string $reason): string
                             <li><span class="acf-swiper__code"><?php echo esc_html($field['key']); ?></span> (<?php echo esc_html($field['label']); ?>)</li>
                         <?php endforeach; ?>
                     </ul>
+                    <div>Shortcode: <span class="acf-swiper__code">[acf_swiper]</span></div>
+                </div>
+            <?php elseif ($is_admin && $source === 'builtin') : ?>
+                <div class="acf-swiper__fallback-admin">
+                    <strong>Built-in slides</strong>
+                    <div>Manage slides in <span class="acf-swiper__code">Settings → ACF Swiper → Built-in Slides</span>.</div>
                     <div>Shortcode: <span class="acf-swiper__code">[acf_swiper]</span></div>
                 </div>
             <?php endif; ?>
@@ -260,6 +276,7 @@ function shortcode(array $atts = []): string
         [
             'post_id' => get_the_ID(),
             'field' => $settings['acf']['repeater'],
+            'source' => $settings['data_source'],
             'slides_per_view' => $settings['slider']['slides_per_view'],
             'space_between' => $settings['slider']['space_between'],
             'loop' => $settings['slider']['loop'] ? 'true' : 'false',
@@ -288,20 +305,8 @@ function shortcode(array $atts = []): string
     $post_id = is_numeric($atts['post_id']) ? (int) $atts['post_id'] : get_the_ID();
     $field = sanitize_key($atts['field']);
     $atts['field'] = $field;
-
-    if (!function_exists('have_rows')) {
-        return render_fallback($atts, $settings, 'missing_acf');
-    }
-
-    if (!have_rows($field, $post_id)) {
-        return render_fallback($atts, $settings, 'no_slides');
-    }
-
-    // Enqueue assets.
-    wp_enqueue_style('acfswiper-swiper');
-    wp_enqueue_style('acfswiper');
-    wp_enqueue_script('acfswiper-swiper');
-    wp_enqueue_script('acfswiper-init');
+    $source = in_array($atts['source'], ['acf', 'builtin'], true) ? $atts['source'] : $settings['data_source'];
+    $atts['source'] = $source;
 
     $style_text = esc_attr($atts['text_color']);
     $style_gap = (int) $atts['gap'];
@@ -316,6 +321,159 @@ function shortcode(array $atts = []): string
     $dot_active = esc_attr($atts['dot_active']);
     $dot_inactive = esc_attr($atts['dot_inactive']);
     $custom_css = $settings['styles']['custom_css'];
+
+    // Built-in data source path.
+    if ($source === 'builtin') {
+        $slides = $settings['builtin']['slides'] ?? [];
+        if (empty($slides)) {
+            return render_fallback($atts, $settings, 'no_slides_builtin', ['source' => 'builtin']);
+        }
+
+        wp_enqueue_style('acfswiper-swiper');
+        wp_enqueue_style('acfswiper');
+        wp_enqueue_script('acfswiper-swiper');
+        wp_enqueue_script('acfswiper-init');
+
+        ob_start();
+        ?>
+        <div
+            class="acf-swiper"
+            data-acf-swiper
+            data-slides-per-view="<?php echo esc_attr($atts['slides_per_view']); ?>"
+            data-space-between="<?php echo esc_attr($atts['space_between']); ?>"
+            data-loop="<?php echo esc_attr($atts['loop']); ?>"
+            data-speed="<?php echo esc_attr($atts['speed']); ?>"
+            data-autoplay="<?php echo esc_attr($atts['autoplay']); ?>"
+            data-autoplay-delay="<?php echo esc_attr($atts['autoplay_delay']); ?>"
+        >
+            <div class="swiper" style="min-height: <?php echo $style_min_height; ?>px;">
+                <div class="swiper-wrapper">
+                    <?php foreach ($slides as $slide) :
+                        $heading = $slide['heading'] ?? '';
+                        $text = $slide['text'] ?? '';
+                        $btn_txt = $slide['button_text'] ?? '';
+                        $btn = $slide['button_link'] ?? '';
+                        $img = $slide['image'] ?? '';
+
+                        $img_url = '';
+                        if (is_numeric($img)) {
+                            $img_url = wp_get_attachment_image_url((int) $img, 'full');
+                        } elseif (is_string($img) && $img) {
+                            $img_url = $img;
+                        }
+                        ?>
+                        <div class="swiper-slide">
+                            <?php if ($img_url) : ?>
+                                <img class="slide-bg" src="<?php echo esc_url($img_url); ?>" alt="">
+                            <?php endif; ?>
+
+                            <div class="slide-overlay" style="background: <?php echo $style_overlay; ?>;"></div>
+
+                            <div class="slide-inner" style="color: <?php echo $style_text; ?>; gap: <?php echo $style_gap; ?>px; align-items: flex-start; text-align: left;">
+                                <?php if ($heading) : ?>
+                                    <h1 style="color: <?php echo $style_text; ?>; margin: 0; line-height: 1.1;"><?php echo esc_html($heading); ?></h1>
+                                <?php endif; ?>
+
+                                <?php if ($text) : ?>
+                                    <div class="slide-text" style="color: <?php echo $style_text; ?>; margin: 0;"><?php echo wp_kses_post(nl2br($text)); ?></div>
+                                <?php endif; ?>
+
+                                <?php if ($btn) : ?>
+                                    <a
+                                        class="slide-button"
+                                        href="<?php echo esc_url($btn); ?>"
+                                        style="
+                                            display: inline-flex;
+                                            align-items: center;
+                                            justify-content: center;
+                                            padding: 10px 18px;
+                                            border-radius: <?php echo $style_btn_radius; ?>px;
+                                            background: <?php echo $style_btn_bg; ?>;
+                                            color: <?php echo $style_btn_text; ?>;
+                                            text-decoration: none;
+                                            transition: background 160ms ease, color 160ms ease;
+                                            width: auto;
+                                            max-width: max-content;
+                                            box-sizing: border-box;
+                                        "
+                                        onmouseover="this.style.background='<?php echo $style_btn_bg_hover; ?>';this.style.color='<?php echo $style_btn_text_hover; ?>';"
+                                        onmouseout="this.style.background='<?php echo $style_btn_bg; ?>';this.style.color='<?php echo $style_btn_text; ?>';"
+                                    >
+                                        <?php echo esc_html($btn_txt ?: 'Learn More'); ?>
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <?php if ($atts['pagination'] === 'true') : ?>
+                    <div class="swiper-pagination"></div>
+                <?php endif; ?>
+            </div>
+        </div>
+        <style>
+            .acf-swiper .slide-bg {
+                position: absolute;
+                inset: 0;
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                z-index: 0;
+            }
+            .acf-swiper .slide-overlay {
+                position: absolute;
+                inset: 0;
+                z-index: 1;
+                pointer-events: none;
+            }
+            .acf-swiper .slide-inner {
+                position: relative;
+                z-index: 2;
+                display: flex;
+                flex-direction: column;
+                gap: <?php echo $style_gap; ?>px;
+                color: <?php echo $style_text; ?>;
+            }
+            .acf-swiper .swiper-pagination-bullet {
+                background: <?php echo $dot_inactive; ?>;
+                opacity: 1;
+                transition: background 160ms ease, transform 160ms ease;
+                width: <?php echo $style_dot_size; ?>px;
+                height: <?php echo $style_dot_size; ?>px;
+            }
+            .acf-swiper .swiper-pagination-bullet-active {
+                background: <?php echo $dot_active; ?>;
+                transform: scale(1.1);
+            }
+            .acf-swiper .swiper-pagination {
+                position: absolute;
+                bottom: 16px;
+                left: 0;
+                right: 0;
+                z-index: 3;
+                display: flex;
+                justify-content: center;
+                gap: 10px;
+            }
+            <?php if (!empty($custom_css)) : echo $custom_css; endif; ?>
+        </style>
+        <?php
+        return ob_get_clean();
+    }
+
+    if (!function_exists('have_rows')) {
+        return render_fallback($atts, $settings, 'missing_acf', ['source' => 'acf']);
+    }
+
+    if (!have_rows($field, $post_id)) {
+        return render_fallback($atts, $settings, 'no_slides', ['source' => 'acf']);
+    }
+
+    // Enqueue assets.
+    wp_enqueue_style('acfswiper-swiper');
+    wp_enqueue_style('acfswiper');
+    wp_enqueue_script('acfswiper-swiper');
+    wp_enqueue_script('acfswiper-init');
 
     ob_start();
     ?>
@@ -475,12 +633,46 @@ function sanitize_settings(array $input): array
     $defaults = defaults();
     $clean = $defaults;
 
+    $allowed_sources = ['acf', 'builtin'];
+    $source = $input['data_source'] ?? $defaults['data_source'];
+    $clean['data_source'] = in_array($source, $allowed_sources, true) ? $source : $defaults['data_source'];
+
     $clean['acf']['repeater'] = sanitize_key($input['acf']['repeater'] ?? $defaults['acf']['repeater']);
     $clean['acf']['heading'] = sanitize_key($input['acf']['heading'] ?? $defaults['acf']['heading']);
     $clean['acf']['text'] = sanitize_key($input['acf']['text'] ?? $defaults['acf']['text']);
     $clean['acf']['button_text'] = sanitize_key($input['acf']['button_text'] ?? $defaults['acf']['button_text']);
     $clean['acf']['button_link'] = sanitize_key($input['acf']['button_link'] ?? $defaults['acf']['button_link']);
     $clean['acf']['image'] = sanitize_key($input['acf']['image'] ?? $defaults['acf']['image']);
+
+    $clean['builtin']['slides'] = [];
+    if (!empty($input['builtin']['slides']) && is_array($input['builtin']['slides'])) {
+        foreach (array_values($input['builtin']['slides']) as $slide) {
+            if (!is_array($slide)) {
+                continue;
+            }
+            $heading = sanitize_text_field($slide['heading'] ?? '');
+            $text = wp_kses_post($slide['text'] ?? '');
+            $btn_text = sanitize_text_field($slide['button_text'] ?? '');
+            $btn_link = isset($slide['button_link']) ? esc_url_raw($slide['button_link']) : '';
+            $image_val = $slide['image'] ?? '';
+            $image = '';
+            if (is_numeric($image_val)) {
+                $image = (string) (int) $image_val;
+            } elseif (is_string($image_val)) {
+                $image = esc_url_raw($image_val);
+            }
+
+            if ($heading || $text || $btn_text || $btn_link || $image) {
+                $clean['builtin']['slides'][] = [
+                    'heading' => $heading,
+                    'text' => $text,
+                    'button_text' => $btn_text,
+                    'button_link' => $btn_link,
+                    'image' => $image,
+                ];
+            }
+        }
+    }
 
     $clean['slider']['min_height'] = (int) ($input['slider']['min_height'] ?? $defaults['slider']['min_height']);
     $clean['slider']['gap'] = (int) ($input['slider']['gap'] ?? $defaults['slider']['gap']);
@@ -519,6 +711,16 @@ function render_settings_page(): void
         <form method="post" action="options.php">
             <?php settings_fields('acfswiper_settings_group'); ?>
             <table class="form-table" role="presentation">
+                <tr><th colspan="2"><h2>Data Source</h2></th></tr>
+                <tr>
+                    <th scope="row"><label for="data-source-acf">Source</label></th>
+                    <td>
+                        <label><input type="radio" name="acfswiper_settings[data_source]" id="data-source-acf" value="acf" <?php checked($settings['data_source'], 'acf'); ?>> ACF repeater (default)</label><br>
+                        <label><input type="radio" name="acfswiper_settings[data_source]" id="data-source-builtin" value="builtin" <?php checked($settings['data_source'], 'builtin'); ?>> Built-in slides (no ACF required)</label>
+                        <p class="description">Shortcode respects <code>source="acf"</code> or <code>source="builtin"</code> if you want to override per instance.</p>
+                    </td>
+                </tr>
+
                 <tr><th colspan="2"><h2>ACF Fields</h2></th></tr>
                 <tr>
                     <th scope="row"><label for="acf-repeater">Repeater field</label></th>
@@ -543,6 +745,42 @@ function render_settings_page(): void
                 <tr>
                     <th scope="row"><label for="acf-image">Image field</label></th>
                     <td><input name="acfswiper_settings[acf][image]" id="acf-image" type="text" value="<?php echo esc_attr($settings['acf']['image']); ?>" class="regular-text"></td>
+                </tr>
+
+                <tr class="js-acfswiper-builtin"><th colspan="2"><h2>Built-in Slides</h2></th></tr>
+                <tr class="js-acfswiper-builtin">
+                    <th scope="row">Slides</th>
+                    <td>
+                        <p class="description">Use this if you prefer not to use ACF. Slides are stored in options.</p>
+                        <div id="acfswiper-builtin-slides" data-next-index="<?php echo isset($settings['builtin']['slides']) ? count($settings['builtin']['slides']) : 0; ?>">
+                            <?php
+                            $slides = $settings['builtin']['slides'] ?? [];
+                            if (!empty($slides)) :
+                                foreach ($slides as $i => $slide) :
+                                    $heading = $slide['heading'] ?? '';
+                                    $text = $slide['text'] ?? '';
+                                    $btn_text = $slide['button_text'] ?? '';
+                                    $btn_link = $slide['button_link'] ?? '';
+                                    $image = $slide['image'] ?? '';
+                                    ?>
+                                    <div class="acfswiper-slide-card" data-index="<?php echo (int) $i; ?>">
+                                        <div class="acfswiper-slide-card__head">
+                                            <strong>Slide #<?php echo (int) ($i + 1); ?></strong>
+                                            <button type="button" class="button-link acfswiper-remove-slide">Remove</button>
+                                        </div>
+                                        <p><label>Heading<br><input type="text" class="regular-text" name="acfswiper_settings[builtin][slides][<?php echo (int) $i; ?>][heading]" value="<?php echo esc_attr($heading); ?>"></label></p>
+                                        <p><label>Text<br><textarea name="acfswiper_settings[builtin][slides][<?php echo (int) $i; ?>][text]" rows="3" class="large-text"><?php echo esc_textarea($text); ?></textarea></label></p>
+                                        <p><label>Button text<br><input type="text" class="regular-text" name="acfswiper_settings[builtin][slides][<?php echo (int) $i; ?>][button_text]" value="<?php echo esc_attr($btn_text); ?>"></label></p>
+                                        <p><label>Button link (URL)<br><input type="url" class="regular-text" name="acfswiper_settings[builtin][slides][<?php echo (int) $i; ?>][button_link]" value="<?php echo esc_attr($btn_link); ?>"></label></p>
+                                        <p><label>Image (ID or URL)<br><input type="text" class="regular-text" name="acfswiper_settings[builtin][slides][<?php echo (int) $i; ?>][image]" value="<?php echo esc_attr($image); ?>" placeholder="123 or https://example.com/image.jpg"></label></p>
+                                    </div>
+                                    <?php
+                                endforeach;
+                            endif;
+                            ?>
+                        </div>
+                        <p><button type="button" class="button" id="acfswiper-add-slide">Add slide</button></p>
+                    </td>
                 </tr>
 
                 <tr><th colspan="2"><h2>Slider Options</h2></th></tr>
@@ -622,6 +860,74 @@ function render_settings_page(): void
             <?php submit_button(); ?>
         </form>
     </div>
+    <script type="text/template" id="acfswiper-slide-template">
+        <div class="acfswiper-slide-card" data-index="__i__">
+            <div class="acfswiper-slide-card__head">
+                <strong>Slide #__n__</strong>
+                <button type="button" class="button-link acfswiper-remove-slide">Remove</button>
+            </div>
+            <p><label>Heading<br><input type="text" class="regular-text" name="acfswiper_settings[builtin][slides][__i__][heading]" value=""></label></p>
+            <p><label>Text<br><textarea name="acfswiper_settings[builtin][slides][__i__][text]" rows="3" class="large-text"></textarea></label></p>
+            <p><label>Button text<br><input type="text" class="regular-text" name="acfswiper_settings[builtin][slides][__i__][button_text]" value=""></label></p>
+            <p><label>Button link (URL)<br><input type="url" class="regular-text" name="acfswiper_settings[builtin][slides][__i__][button_link]" value=""></label></p>
+            <p><label>Image (ID or URL)<br><input type="text" class="regular-text" name="acfswiper_settings[builtin][slides][__i__][image]" value="" placeholder="123 or https://example.com/image.jpg"></label></p>
+        </div>
+    </script>
+    <style>
+        .acfswiper-slide-card {
+            border: 1px solid #c3c4c7;
+            border-radius: 8px;
+            padding: 12px 12px 4px;
+            margin-bottom: 12px;
+            background: #fff;
+        }
+        .acfswiper-slide-card__head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+    </style>
+    <script>
+        (function() {
+            const toggleBuiltins = () => {
+                const value = document.querySelector('input[name="acfswiper_settings[data_source]"]:checked')?.value || 'acf';
+                document.querySelectorAll('.js-acfswiper-builtin').forEach(row => {
+                    row.style.display = value === 'builtin' ? '' : 'none';
+                });
+            };
+
+            const radios = document.querySelectorAll('input[name="acfswiper_settings[data_source]"]');
+            radios.forEach(r => r.addEventListener('change', toggleBuiltins));
+            toggleBuiltins();
+
+            const slidesWrap = document.getElementById('acfswiper-builtin-slides');
+            const template = document.getElementById('acfswiper-slide-template');
+            const addBtn = document.getElementById('acfswiper-add-slide');
+
+            if (addBtn && slidesWrap && template) {
+                addBtn.addEventListener('click', () => {
+                    const next = parseInt(slidesWrap.dataset.nextIndex || '0', 10);
+                    const html = template.innerHTML.replace(/__i__/g, next).replace(/__n__/g, next + 1);
+                    const holder = document.createElement('div');
+                    holder.innerHTML = html.trim();
+                    const node = holder.firstElementChild;
+                    slidesWrap.appendChild(node);
+                    slidesWrap.dataset.nextIndex = next + 1;
+                });
+
+                slidesWrap.addEventListener('click', (e) => {
+                    const target = e.target;
+                    if (target && target.classList.contains('acfswiper-remove-slide')) {
+                        const card = target.closest('.acfswiper-slide-card');
+                        if (card) {
+                            card.remove();
+                        }
+                    }
+                });
+            }
+        }());
+    </script>
     <?php
 }
 
