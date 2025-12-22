@@ -33,11 +33,15 @@
   height: auto;
   min-height: inherit;
   display: flex;
+  align-items: center;
 }
 
 .acf-swiper .slide-inner {
   min-height: inherit;
   flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .acf-swiper .slide-bg {
