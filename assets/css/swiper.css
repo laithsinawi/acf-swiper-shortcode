@@ -45,6 +45,12 @@
   width: 100%;
 }
 
+.acf-swiper .slide-inner__content {
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
 .acf-swiper .slide-bg {
   position: absolute;
   inset: 0;

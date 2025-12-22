@@ -37,6 +37,8 @@ function defaults(): array
         'slider' => [
             'min_height' => 500,
             'gap' => 14,
+            'content_max_width' => 1200,
+            'content_padding' => 24,
             'slides_per_view' => 1,
             'space_between' => 24,
             'loop' => true,
@@ -285,6 +287,8 @@ function shortcode(array $atts = []): string
             'autoplay_delay' => $settings['slider']['autoplay_delay'],
             'min_height' => $settings['slider']['min_height'],
             'gap' => $settings['slider']['gap'],
+            'content_max_width' => $settings['slider']['content_max_width'],
+            'content_padding' => $settings['slider']['content_padding'],
             'pagination' => $settings['slider']['pagination'] ? 'true' : 'false',
             'text_color' => $settings['styles']['text_color'],
             'button_bg' => $settings['styles']['button_bg'],
@@ -321,6 +325,8 @@ function shortcode(array $atts = []): string
     $dot_active = esc_attr($atts['dot_active']);
     $dot_inactive = esc_attr($atts['dot_inactive']);
     $custom_css = $settings['styles']['custom_css'];
+    $content_max_width = (int) $atts['content_max_width'];
+    $content_padding = (int) $atts['content_padding'];
 
     // Built-in data source path.
     if ($source === 'builtin') {
@@ -370,6 +376,7 @@ function shortcode(array $atts = []): string
                             <div class="slide-overlay" style="background: <?php echo $style_overlay; ?>;"></div>
 
                             <div class="slide-inner" style="color: <?php echo $style_text; ?>; gap: <?php echo $style_gap; ?>px; align-items: flex-start; text-align: left;">
+                                <div class="slide-inner__content" style="width: 100%; max-width: <?php echo $content_max_width; ?>px; margin: 0 auto; padding: 0 <?php echo $content_padding; ?>px; display: flex; flex-direction: column; gap: <?php echo $style_gap; ?>px;">
                                 <?php if ($heading) : ?>
                                     <h1 style="color: <?php echo $style_text; ?>; margin: 0; line-height: 1.1;"><?php echo esc_html($heading); ?></h1>
                                 <?php endif; ?>
@@ -402,6 +409,7 @@ function shortcode(array $atts = []): string
                                         <?php echo esc_html($btn_txt ?: 'Learn More'); ?>
                                     </a>
                                 <?php endif; ?>
+                                </div>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -525,6 +533,7 @@ function shortcode(array $atts = []): string
                         <div class="slide-overlay" style="background: <?php echo $style_overlay; ?>;"></div>
 
                         <div class="slide-inner" style="color: <?php echo $style_text; ?>; gap: <?php echo $style_gap; ?>px; align-items: flex-start; text-align: left;">
+                            <div class="slide-inner__content" style="width: 100%; max-width: <?php echo $content_max_width; ?>px; margin: 0 auto; padding: 0 <?php echo $content_padding; ?>px; display: flex; flex-direction: column; gap: <?php echo $style_gap; ?>px;">
                             <?php if ($heading) : ?>
                                 <h1 style="color: <?php echo $style_text; ?>; margin: 0; line-height: 1.1;"><?php echo esc_html($heading); ?></h1>
                             <?php endif; ?>
@@ -557,6 +566,7 @@ function shortcode(array $atts = []): string
                                     <?php echo esc_html($btn_txt ?: 'Learn More'); ?>
                                 </a>
                             <?php endif; ?>
+                            </div>
                         </div>
                     </div>
                     <?php
@@ -700,6 +710,8 @@ function sanitize_settings(array $input): array
 
     $clean['slider']['min_height'] = (int) ($input['slider']['min_height'] ?? $defaults['slider']['min_height']);
     $clean['slider']['gap'] = (int) ($input['slider']['gap'] ?? $defaults['slider']['gap']);
+    $clean['slider']['content_max_width'] = (int) ($input['slider']['content_max_width'] ?? $defaults['slider']['content_max_width']);
+    $clean['slider']['content_padding'] = (int) ($input['slider']['content_padding'] ?? $defaults['slider']['content_padding']);
     $clean['slider']['slides_per_view'] = (int) ($input['slider']['slides_per_view'] ?? $defaults['slider']['slides_per_view']);
     $clean['slider']['space_between'] = (int) ($input['slider']['space_between'] ?? $defaults['slider']['space_between']);
     $clean['slider']['loop'] = !empty($input['slider']['loop']);
@@ -830,6 +842,14 @@ function render_settings_page(): void
                 <tr>
                     <th scope="row"><label for="slider-gap">Gap (px)</label></th>
                     <td><input name="acfswiper_settings[slider][gap]" id="slider-gap" type="number" value="<?php echo esc_attr($settings['slider']['gap']); ?>" class="small-text"></td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="slider-content-max">Content max width (px)</label></th>
+                    <td><input name="acfswiper_settings[slider][content_max_width]" id="slider-content-max" type="number" value="<?php echo esc_attr($settings['slider']['content_max_width']); ?>" class="small-text" min="0"></td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="slider-content-pad">Content padding (px)</label></th>
+                    <td><input name="acfswiper_settings[slider][content_padding]" id="slider-content-pad" type="number" value="<?php echo esc_attr($settings['slider']['content_padding']); ?>" class="small-text" min="0"></td>
                 </tr>
                 <tr>
                     <th scope="row"><label for="slider-spv">Slides per view</label></th>
