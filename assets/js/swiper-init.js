@@ -32,11 +32,11 @@
         loop: parseBool(parent.dataset.loop, true),
       };
 
-      const autoplay = parseBool(parent.dataset.autoplay, true);
+      const autoplay = parseBool(parent.dataset.autoplay, false);
       const autoplayDelay = parsedNumber(parent.dataset.autoplayDelay, NaN);
-      if (autoplay) {
-        opts.autoplay = { delay: Number.isNaN(autoplayDelay) ? 4000 : autoplayDelay };
-      }
+      opts.autoplay = autoplay
+        ? { delay: Number.isNaN(autoplayDelay) ? 4000 : autoplayDelay }
+        : false;
 
       const pagination = container.querySelector('.swiper-pagination');
       if (pagination) {
