@@ -20,15 +20,19 @@
       if (container.dataset.swiperInitialized === 'true') return;
 
       const parent = container.closest('[data-acf-swiper]');
+      const parsedNumber = (val, fallback) => {
+        const n = Number(val);
+        return Number.isNaN(n) ? fallback : n;
+      };
       const opts = {
-        slidesPerView: Number(parent.dataset.slidesPerView) || 1,
-        spaceBetween: Number(parent.dataset.spaceBetween) || 24,
-        speed: Number(parent.dataset.speed) || 600,
+        slidesPerView: parsedNumber(parent.dataset.slidesPerView, 1),
+        spaceBetween: parsedNumber(parent.dataset.spaceBetween, 24),
+        speed: parsedNumber(parent.dataset.speed, 600),
         loop: parseBool(parent.dataset.loop, true),
       };
 
       const autoplay = parseBool(parent.dataset.autoplay, true);
-      const autoplayDelay = Number(parent.dataset.autoplayDelay);
+      const autoplayDelay = parsedNumber(parent.dataset.autoplayDelay, NaN);
       if (autoplay || !Number.isNaN(autoplayDelay)) {
         opts.autoplay = { delay: Number.isNaN(autoplayDelay) ? 4000 : autoplayDelay };
       }
