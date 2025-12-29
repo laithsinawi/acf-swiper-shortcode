@@ -2,7 +2,7 @@
 /**
  * Plugin Name: ACF Swiper Shortcode
  * Description: Simple Swiper slider powered by ACF repeater fields. No builder dependency.
- * Version: 0.0.4
+ * Version: 0.0.5
  * Author: Sinawi Web Design
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-const VERSION = '0.0.4';
+const VERSION = '0.0.5';
 
 /**
  * Default settings.
