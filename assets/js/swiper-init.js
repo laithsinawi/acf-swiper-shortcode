@@ -21,6 +21,7 @@
 
       const parent = container.closest('[data-acf-swiper]');
       const parsedNumber = (val, fallback) => {
+        if (val === undefined || val === null || val === '') return fallback;
         const n = Number(val);
         return Number.isNaN(n) ? fallback : n;
       };
@@ -33,7 +34,7 @@
 
       const autoplay = parseBool(parent.dataset.autoplay, true);
       const autoplayDelay = parsedNumber(parent.dataset.autoplayDelay, NaN);
-      if (autoplay || !Number.isNaN(autoplayDelay)) {
+      if (autoplay) {
         opts.autoplay = { delay: Number.isNaN(autoplayDelay) ? 4000 : autoplayDelay };
       }
 
