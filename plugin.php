@@ -657,6 +657,16 @@ function register_settings(): void
 add_action('admin_init', __NAMESPACE__ . '\\register_settings');
 
 /**
+ * Allow editors (not just administrators) to save the settings form,
+ * matching the capability required to view the admin menu page.
+ *
+ * @return string
+ */
+add_filter('option_page_capability_acfswiper_settings_group', function (): string {
+    return 'edit_others_posts';
+});
+
+/**
  * Sanitize settings.
  *
  * @param array $input
@@ -744,7 +754,12 @@ function render_settings_page(): void
     }
     ?>
     <div class="wrap">
-        <h1>ACF Swiper Settings</h1>
+        <h1 style="display:flex;align-items:center;gap:10px;">
+            ACF Swiper
+            <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#2271b1;background:#f0f6fc;border:1px solid #c5d9ed;border-radius:4px;padding:3px 8px;line-height:1;">Settings</span>
+        </h1>
+        <p class="description" style="margin-top:4px;">Simple Swiper slider powered by ACF repeater fields. No builder dependency.</p>
+        <?php settings_errors(); ?>
         <p>Use the shortcode <code>[acf_swiper]</code> on any page/post. Optional overrides: <code>post_id</code>, <code>field</code>, <code>slides_per_view</code>, <code>space_between</code>, <code>loop</code>, <code>speed</code>, <code>autoplay</code>, <code>autoplay_delay</code>, <code>min_height</code>, <code>gap</code>, and the style keys below.</p>
         <p><button type="button" class="button" onclick="navigator.clipboard.writeText('[acf_swiper]'); alert('Shortcode copied');">Copy shortcode</button></p>
         <form method="post" action="options.php">
@@ -918,6 +933,7 @@ function render_settings_page(): void
             </table>
             <?php submit_button(); ?>
         </form>
+        <p style="margin-top:32px;padding-top:16px;border-top:1px solid #dcdcde;color:#8c8f94;font-size:12px;">ACF Swiper Shortcode &middot; Crafted by <strong>Sinawi Web Design</strong></p>
     </div>
     <script type="text/template" id="acfswiper-slide-template">
         <div class="acfswiper-slide-card" data-index="__i__">
@@ -1060,12 +1076,14 @@ function render_settings_page(): void
  */
 function add_settings_page(): void
 {
-    add_options_page(
+    add_menu_page(
         'ACF Swiper',
         'ACF Swiper',
-        'manage_options',
+        'edit_others_posts',
         'acfswiper',
-        __NAMESPACE__ . '\\render_settings_page'
+        __NAMESPACE__ . '\\render_settings_page',
+        'dashicons-images-alt2',
+        26
     );
 }
 add_action('admin_menu', __NAMESPACE__ . '\\add_settings_page');
